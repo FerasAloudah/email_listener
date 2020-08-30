@@ -30,6 +30,7 @@ import os
 from .helpers import (
     calc_timeout,
     get_time,
+    encoded_words_to_text,
 )
 from .email_processing import write_txt_file
 
@@ -68,7 +69,6 @@ class EmailListener:
         self.attachment_dir = attachment_dir
         self.server = None
 
-
     def login(self):
         """Logs in the EmailListener to the IMAP server.
 
@@ -84,7 +84,6 @@ class EmailListener:
         self.server.login(self.email, self.app_password)
         self.server.select_folder(self.folder, readonly=False)
 
-
     def logout(self):
         """Logs out the EmailListener from the IMAP server.
 
@@ -98,7 +97,6 @@ class EmailListener:
 
         self.server.logout()
         self.server = None
-
 
     def scrape(self, move=None, unread=False, delete=False):
         """Scrape unread emails from the current folder.
@@ -133,9 +131,15 @@ class EmailListener:
             from_email = self.__get_from(email_message)
 
             # Generate the dict key for this email
-            key = "{}_{}".format(uid, from_email)
+            key = "{}".format(uid)
             # Generate the value dictionary to be filled later
             val_dict = {}
+
+            email_directory = os.path.join(self.attachment_dir, from_email, str(uid))
+            val_dict["email_directory"] = email_directory
+
+            if not os.path.exists(email_directory):
+                os.makedirs(email_directory)
 
             # Display notice
             print("PROCESSING: Email UID = {} from {}".format(uid, from_email))
@@ -159,7 +163,6 @@ class EmailListener:
         # Return the dictionary of messages and their contents
         return msg_dict
 
-
     def __get_from(self, email_message):
         """Helper function for getting who an email message is from.
 
@@ -182,7 +185,6 @@ class EmailListener:
 
         return from_email
 
-
     def __get_subject(self, email_message):
         """
 
@@ -194,7 +196,6 @@ class EmailListener:
         if subject is None:
             return "No Subject"
         return subject
-
 
     def __parse_multipart_message(self, email_message, val_dict):
         """Helper function for parsing multipart email messages.
@@ -216,7 +217,7 @@ class EmailListener:
             file_name = part.get_filename()
             if bool(file_name):
                 # Generate file path
-                file_path = os.path.join(self.attachment_dir, file_name)
+                file_path = os.path.join(val_dict["email_directory"], encoded_words_to_text(file_name))
                 file = open(file_path, 'wb')
                 file.write(part.get_payload(decode=True))
                 file.close()
@@ -229,7 +230,7 @@ class EmailListener:
             elif part.get_content_type() == 'text/html':
                 # Convert the body from html to plain text
                 val_dict["Plain_HTML"] = html2text.html2text(
-                        part.get_payload())
+                    part.get_payload())
                 val_dict["HTML"] = part.get_payload()
 
             # If the part is plain text
@@ -238,7 +239,6 @@ class EmailListener:
                 val_dict["Plain_Text"] = part.get_payload()
 
         return val_dict
-
 
     def __parse_singlepart_message(self, email_message, val_dict):
         """Helper function for parsing singlepart email messages.
@@ -257,7 +257,6 @@ class EmailListener:
         # Get the message body, which is plain text
         val_dict["Plain_Text"] = email_message.get_payload()
         return val_dict
-
 
     def __execute_options(self, uid, move, unread, delete):
         """Loop through optional arguments and execute any required processing.
@@ -294,7 +293,6 @@ class EmailListener:
             # Move the email to the trash
             self.server.set_gmail_labels(uid, "\\Trash")
         return
-
 
     def listen(self, timeout, process_func=write_txt_file, **kwargs):
         """Listen in an email folder for incoming emails, and process them.
@@ -333,7 +331,6 @@ class EmailListener:
             self.__idle(process_func=process_func, **kwargs)
         return
 
-
     def __idle(self, process_func=write_txt_file, **kwargs):
         """Helper function, idles in an email folder processing incoming emails.
 
@@ -365,7 +362,7 @@ class EmailListener:
         self.server.idle()
         print("Connection is now in IDLE mode.")
         # Set idle timeout to 5 minutes
-        inner_timeout = get_time() + 60*5
+        inner_timeout = get_time() + 60 * 5
         # Until idle times out
         while (get_time() < inner_timeout):
             # Check for a new response every 30 seconds
@@ -384,4 +381,3 @@ class EmailListener:
         # Stop idling
         self.server.idle_done()
         return
-

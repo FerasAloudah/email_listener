@@ -14,6 +14,9 @@ Examples:
 """
 
 import datetime
+import quopri
+import re
+import base64
 
 
 def calc_timeout(timeout):
@@ -49,9 +52,9 @@ def calc_timeout(timeout):
         sec = 0
     else:
         # Input isn't an int or list, so it is invalid
-        err = ( "timeout must be either a list in the format [hours, minutes] "
-                "or an integer representing minutes"
-        )
+        err = ("timeout must be either a list in the format [hours, minutes] "
+               "or an integer representing minutes"
+               )
         raise ValueError(err)
 
     # Calculate the change in time between now and the timeout
@@ -76,3 +79,15 @@ def get_time():
 
     return datetime.datetime.now().timestamp()
 
+
+def encoded_words_to_text(encoded_words):
+    encoded_word_regex = r'=\?{1}(.+)\?{1}([B|Q])\?{1}(.+)\?{1}='
+    groups = re.match(encoded_word_regex, encoded_words)
+    if not groups:
+        return encoded_words
+    charset, encoding, encoded_text = re.match(encoded_word_regex, encoded_words).groups()
+    if encoding == 'B':
+        byte_string = base64.b64decode(encoded_text)
+    elif encoding == 'Q':
+        byte_string = quopri.decodestring(encoded_text)
+    return byte_string.decode(charset)

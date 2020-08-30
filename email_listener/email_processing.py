@@ -39,17 +39,15 @@ def write_txt_file(email_listener, msg_dict):
     # List of files to be returned
     file_list = []
     # For each key, create a file and ensure it doesn't exist
-    for key in msg_dict.keys():
-        file_path = os.path.join(email_listener.attachment_dir, "{}.txt".format(key))
+    for key, message in msg_dict.items():
+        file_path = os.path.join(message["email_directory"], "message.txt")
         if os.path.exists(file_path):
             print("File has already been created.")
             continue
 
         # Open the file
         file = open(file_path, "w+")
-        # Conver the message data to a string, and write it to the file
-        msg_string = __msg_to_str(msg_dict[key])
-        file.write(msg_string)
+        file.write(message["Plain_Text"])
         file.close()
         # Add the file name to the return list
         file_list.append(file_path)
