@@ -134,6 +134,7 @@ class EmailListener:
 
             email_directory = os.path.join(self.attachment_dir, from_email, str(uid))
             val_dict["email_directory"] = email_directory
+            val_dict["from_email"] = from_email
 
             if not os.path.exists(email_directory):
                 os.makedirs(email_directory)
@@ -350,7 +351,6 @@ class EmailListener:
 
         # Start idling
         self.server.idle()
-        print("Connection is now in IDLE mode.")
         # Set idle timeout to 5 minutes
         inner_timeout = get_time() + 60 * 5
         # Until idle times out
