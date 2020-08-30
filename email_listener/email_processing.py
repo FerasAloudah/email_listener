@@ -22,12 +22,10 @@ import os
 from email_listener.email_responder import EmailResponder
 
 
-def write_txt_file(email_listener, msg_dict):
+def write_txt_file(msg_dict):
     """Write the email message data returned from scrape to text files.
 
     Args:
-        email_listener (EmailListener): The EmailListener object this function
-            is used with.
         msg_dict (dict): The dictionary of email message data returned by the
             scraping function.
 

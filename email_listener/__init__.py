@@ -25,14 +25,11 @@ Example:
 import email
 import html2text
 from imapclient import IMAPClient, SEEN
-import os
+
 # Imports from this package
-from .helpers import (
-    calc_timeout,
-    get_time,
-    encoded_words_to_text,
-)
-from .email_processing import write_txt_file
+from .helpers import *
+from .email_processing import *
+from .email_responder import *
 
 
 class EmailListener:
@@ -294,13 +291,10 @@ class EmailListener:
             self.server.set_gmail_labels(uid, "\\Trash")
         return
 
-    def listen(self, timeout, process_func=write_txt_file, **kwargs):
+    def listen(self, process_func=write_txt_file, **kwargs):
         """Listen in an email folder for incoming emails, and process them.
 
         Args:
-            timeout (int or list): Either an integer representing the number
-                of minutes to timeout in, or a list, formatted as [hour, minute]
-                of the local time to timeout at.
             process_func (function): A function called to further process the
                 emails. The function must take only the list of file paths
                 returned by the scrape function as an argument. Defaults to the
@@ -323,11 +317,7 @@ class EmailListener:
         if type(self.server) is not IMAPClient:
             raise ValueError("server attribute must be type IMAPClient")
 
-        # Get the timeout value
-        outer_timeout = calc_timeout(timeout)
-
-        # Run until the timeout is reached
-        while (get_time() < outer_timeout):
+        while True:
             self.__idle(process_func=process_func, **kwargs)
         return
 
@@ -364,18 +354,18 @@ class EmailListener:
         # Set idle timeout to 5 minutes
         inner_timeout = get_time() + 60 * 5
         # Until idle times out
-        while (get_time() < inner_timeout):
+        while get_time() < inner_timeout:
             # Check for a new response every 30 seconds
             responses = self.server.idle_check(timeout=30)
-            print("Server sent:", responses if responses else "nothing")
             # If there is a response
-            if (responses):
+            if responses:
+                print("Server sent:", responses)
                 # Suspend the idling
                 self.server.idle_done()
                 # Process the new emails
                 msgs = self.scrape(move=move, unread=unread, delete=delete)
                 # Run the process function
-                process_func(self, msgs)
+                process_func(msgs)
                 # Restart idling
                 self.server.idle()
         # Stop idling
